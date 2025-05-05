@@ -1,11 +1,16 @@
-import { exec, spawn } from "node:child_process";
-import * as fs from "node:fs";
+import { exec } from "node:child_process";
+import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { promisify } from "node:util";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import {
+	FORMAT_INFO,
+	executeConversion,
+	getConversionHandler,
+} from "./conversion-handlers";
 
 // Create Hono app
 const app = new Hono();
@@ -21,9 +26,11 @@ app.use(
 );
 
 // Create uploads directory
-const UPLOAD_DIR = path.join(os.tmpdir(), "pandoc-converter");
-if (!fs.existsSync(UPLOAD_DIR)) {
-	fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+const UPLOAD_DIR = path.join(os.tmpdir(), "file-converter");
+try {
+	await fs.stat(UPLOAD_DIR);
+} catch {
+	fs.mkdir(UPLOAD_DIR, { recursive: true });
 }
 
 // Check if Pandoc is installed
@@ -34,6 +41,19 @@ app.get("/api/check-pandoc", async (c) => {
 		return c.json({
 			installed: true,
 			version: stdout.split("\n")[0].replace("pandoc ", ""),
+		});
+	} catch (error) {
+		return c.json({ installed: false }, 500);
+	}
+});
+
+// Check if ImageMagick is installed
+app.get("/api/check-imagemagick", async (c) => {
+	try {
+		const { stdout } = await execAsync("convert -version");
+		return c.json({
+			installed: true,
+			version: stdout.split("\n")[0],
 		});
 	} catch (error) {
 		return c.json({ installed: false }, 500);
@@ -58,98 +78,38 @@ app.post("/api/convert", async (c) => {
 		const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}${fileExt}`;
 		const filePath = path.join(UPLOAD_DIR, fileName);
 
-		fs.writeFileSync(filePath, fileBuffer);
+		await fs.writeFile(filePath, fileBuffer);
+
+		// Get the appropriate conversion handler
+		const handler = getConversionHandler(inputFormat, outputFormat);
 
 		// Determine output file path and extension
-		const outputExt =
-			outputFormat === "markdown"
-				? ".md"
-				: outputFormat === "html"
-					? ".html"
-					: outputFormat === "pdf"
-						? ".pdf"
-						: outputFormat === "docx"
-							? ".docx"
-							: outputFormat === "latex"
-								? ".tex"
-								: outputFormat === "epub"
-									? ".epub"
-									: ".txt";
-
+		const outputExt = handler.extension;
 		const outputFileName = `${path.basename(fileName, fileExt)}${outputExt}`;
 		const outputFilePath = path.join(UPLOAD_DIR, outputFileName);
 
-		// Build pandoc command
-		let command = [
-			"pandoc",
-			"-f",
-			inputFormat,
-			"-t",
-			outputFormat,
-			"-o",
-			outputFilePath,
-			filePath,
-		];
-
-		// Add special options for PDF output
-		if (outputFormat === "pdf") {
-			command = [
-				"pandoc",
-				"-f",
-				inputFormat,
-				"--variable=geometry:left=1in,right=1in,top=0.5in,bottom=0.5in",
-				"--variable=papersize=letter",
-				"--variable=fontsize=12pt",
-				"--variable=block-headings",
-				"--variable=widowpenalty=10000",
-				"--variable=clubpenalty=10000",
-				"-o",
-				outputFilePath,
-				filePath,
-			];
-		}
-
-		// Execute pandoc command
-		const pandoc = spawn(command[0], command.slice(1));
-
-		let error = "";
-
-		pandoc.stderr.on("data", (data) => {
-			error += data.toString();
-		});
-
-		await new Promise((resolve, reject) => {
-			pandoc.on("close", (code) => {
-				if (code === 0) {
-					resolve(true);
-				} else {
-					reject(new Error(`Pandoc failed with code ${code}: ${error}`));
-				}
-			});
-		});
+		// Build and execute the conversion command
+		const command = handler.getCommand(filePath, outputFilePath);
+		await executeConversion(command, filePath, outputFilePath);
 
 		// Check if the output file exists
-		if (!fs.existsSync(outputFilePath)) {
+		try {
+			await fs.stat(outputFilePath);
+		} catch (error) {
 			throw new Error("Conversion failed: Output file was not created");
 		}
 
 		// Send the file
-		const outputFileStream = fs.readFileSync(outputFilePath);
+		const outputFileStream = await fs.readFile(outputFilePath);
 
 		// Set the appropriate Content-Type
-		let contentType = "application/octet-stream";
-		if (outputFormat === "html") contentType = "text/html";
-		else if (outputFormat === "markdown") contentType = "text/markdown";
-		else if (outputFormat === "pdf") contentType = "application/pdf";
-		else if (outputFormat === "docx")
-			contentType =
-				"application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+		const contentType = handler.contentType;
 
 		// Clean up temp files
-		setTimeout(() => {
+		setTimeout(async () => {
 			try {
-				fs.unlinkSync(filePath);
-				fs.unlinkSync(outputFilePath);
+				await fs.unlink(filePath);
+				await fs.unlink(outputFilePath);
 			} catch (error) {
 				console.error("Error cleaning up temp files:", error);
 			}

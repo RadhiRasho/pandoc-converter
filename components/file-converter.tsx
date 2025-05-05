@@ -15,12 +15,10 @@ import { Button } from './ui/button';
 
 // Define available formats
 const FORMATS = [
-    { label: 'Markdown', value: 'markdown', extension: 'md' },
-    { label: 'PDF', value: 'pdf', extension: 'pdf' },
-    { label: 'HTML', value: 'html', extension: 'html' },
-    { label: 'DOCX', value: 'docx', extension: 'docx' },
-    { label: 'LaTeX', value: 'latex', extension: 'tex' },
-    { label: 'EPUB', value: 'epub', extension: 'epub' },
+    // Document formats
+    { label: 'PDF', value: 'pdf', extension: 'pdf', type: 'document' },
+    { label: 'HTML', value: 'html', extension: 'html', type: 'document' },
+    { label: 'Markdown', value: 'markdown', extension: 'md', type: 'document' },
 ];
 
 export function FileConverter() {
@@ -35,13 +33,10 @@ export function FileConverter() {
     // Handle file drop
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         accept: {
+            // Document formats
             'text/plain': ['.md', '.txt'],
             'text/html': ['.html', '.htm'],
             'application/pdf': ['.pdf'],
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-            'application/msword': ['.doc'],
-            'application/epub+zip': ['.epub'],
-            'application/x-latex': ['.tex', '.latex'],
         },
         maxFiles: 1,
         onDrop: acceptedFiles => {
@@ -146,7 +141,7 @@ export function FileConverter() {
                                 or click to select a file
                             </p>
                             <p className="text-xs text-muted-foreground mt-4">
-                                Supported formats: Markdown, HTML, PDF, DOCX, LaTeX, EPUB
+                                Supported formats: Documents (DOCX, PDF, ODT, RTF, HTML, Markdown) | Images (PNG, JPG, TIFF, BMP, GIF)
                             </p>
                         </div>
                     )}
@@ -207,7 +202,17 @@ export function FileConverter() {
                                             id="output-format"
                                             className="w-full bg-secondary border border-border rounded-md px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-foreground"
                                             value={outputFormat}
-                                            onChange={(e) => setOutputFormat(e.target.value)}
+                                            onChange={(e) => {
+                                                setOutputFormat(e.target.value);
+                                                // Reset conversion state when output format changes
+                                                setDownloadUrl('');
+                                                setPdfBlob(null);
+                                                setProgress(0);
+                                                setShowPdfPreview(false);
+                                                if (convertMutation.isError) {
+                                                    convertMutation.reset();
+                                                }
+                                            }}
                                         >
                                             {FORMATS.map((format) => (
                                                 <option key={format.value} value={format.value}>
@@ -256,14 +261,14 @@ export function FileConverter() {
                                 {downloadUrl && (
                                     <div className="text-center p-6 bg-secondary/30 rounded-lg border border-primary/50 shadow-glow">
                                         <div className="inline-flex items-center mb-4 text-primary">
-                                            <Check className="h-6 w-6 mr-2" />
+                                            <Check className="h-6 w-6 mr-2 text-green-500" />
                                             <span className="font-medium text-lg">Conversion complete</span>
                                         </div>
                                         <div className="flex flex-col space-y-4 mt-2">
                                             <a
                                                 href={downloadUrl}
                                                 download={outputFileName}
-                                                className="inline-flex items-center justify-center px-4 py-3 rounded-md text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-primary hover:shadow-glow transition-all"
+                                                className="inline-flex justify-center items-center bg-white p-4 rounded-md text-black font-semibold gap-2"
                                             >
                                                 <Download className="h-5 w-5 mr-2" />
                                                 Download {outputFileName}
@@ -274,7 +279,7 @@ export function FileConverter() {
                                                         href={downloadUrl}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        className="inline-flex items-center justify-center px-4 py-3 rounded-md text-primary bg-secondary hover:bg-secondary-dark focus:outline-none focus:ring-2 focus:ring-primary hover:shadow-glow transition-all"
+                                                        className=""
                                                     >
                                                         <Eye className="h-5 w-5 mr-2" />
                                                         Preview PDF

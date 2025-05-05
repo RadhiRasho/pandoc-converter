@@ -2,15 +2,15 @@
   "compilerOptions": {
     "composite": true,
     "skipLibCheck": true,
-    "module": "NodeNext",
-    "moduleResolution": "nodenext",
+    "module": "Preserve",
+    "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
     "strict": true,
     "outDir": "dist",
-    "target": "ESNext",
+    "target": "ESNext"
   },
   "include": [
-    "server/**/*",
+    "server/*",
     "vite.config.ts"
   ]
 }

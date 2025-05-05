@@ -1,10 +1,10 @@
 # File Converter
 
-A modern document conversion application built with Vite, React, React Query, and Hono.js that uses Pandoc to convert between various document formats.
+A modern document conversion application built with Vite, React, React Query, and Hono.js to convert between various document formats.
 
 ## Features
 
-- Convert between multiple document formats (Markdown, HTML, PDF, DOCX, LaTeX, EPUB)
+- Convert between multiple document formats (Docx, pdf, etc.)
 - Drag and drop file upload
 - Real-time conversion progress tracking
 - Clean, responsive UI built with TailwindCSS
@@ -60,26 +60,6 @@ Start the production server:
 ```bash
 npm run start
 ```
-
-## Project Structure
-
-```
-file-converter/
-├── src/                # Frontend source files (React)
-│   ├── components/     # React components
-│   │   └── ui/         # UI components
-│   ├── App.tsx         # Main App component
-│   └── main.tsx        # Entry point
-├── server/             # Backend server files (Hono.js)
-│   └── index.ts        # API server
-└── public/             # Static files
-```
-
-## API Endpoints
-
-- `GET /api/health` - Health check endpoint
-- `GET /api/check-pandoc` - Check if Pandoc is installed
-- `POST /api/convert` - Convert a document (multipart form data)
 
 ## Tech Stack
 

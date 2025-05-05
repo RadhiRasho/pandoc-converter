@@ -23,7 +23,6 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
-    /* Experimental */
     "baseUrl": ".",
     "paths": {
       "@/*": [
@@ -35,6 +34,8 @@
     "app",
     "app/**/*.ts",
     "app/**/*.tsx",
+    "components/**/*.ts",
+    "components/**/*.tsx",
     "lib"
   ]
 }
