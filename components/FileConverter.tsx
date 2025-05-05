@@ -1,5 +1,4 @@
 import { useMutation } from '@tanstack/react-query';
-import axios from 'axios';
 import {
     AlertCircle,
     ArrowRight,
@@ -75,30 +74,38 @@ export function FileConverter() {
             formData.append('inputFormat', inputFormat);
             formData.append('outputFormat', outputFormat);
 
-            const response = await axios.post('/api/convert', formData, {
-                onUploadProgress: (progressEvent) => {
-                    const percentCompleted = progressEvent.total
-                        ? Math.round((progressEvent.loaded * 100) / progressEvent.total)
-                        : 0;
-                    setProgress(percentCompleted > 80 ? 80 : percentCompleted);
-                },
-                responseType: 'blob',
-            });
+            // Using Fetch API instead of axios
+            const controller = new AbortController();
+            const signal = controller.signal;
 
-            // Once conversion is complete, set to 100%
-            setProgress(100);
+            try {
+                const response = await fetch('/api/convert', {
+                    method: 'POST',
+                    body: formData,
+                    signal,
+                });
 
-            // Create blob URL for download
-            const blob = new Blob([response.data]);
-            const url = window.URL.createObjectURL(blob);
-            setDownloadUrl(url);
+                if (!response.ok) {
+                    throw new Error(`Error ${response.status}: ${response.statusText}`);
+                }
 
-            // Store PDF blob explicitly
-            if (outputFormat === 'pdf') {
-                setPdfBlob(blob);
+                // Once conversion is complete, set to 100%
+                setProgress(100);
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                setDownloadUrl(url);
+
+                // Store PDF blob explicitly
+                if (outputFormat === 'pdf') {
+                    setPdfBlob(blob);
+                }
+
+                return url;
+            } catch (error) {
+                console.error('Conversion error:', error);
+                throw error;
             }
-
-            return url;
         },
     });
 

@@ -1,5 +1,5 @@
+import { FileConverter } from '@/components/FileConverter'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { FileConverter } from './components/FileConverter'
 
 const queryClient = new QueryClient()
 

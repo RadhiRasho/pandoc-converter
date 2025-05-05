@@ -27,13 +27,14 @@
     "baseUrl": ".",
     "paths": {
       "@/*": [
-        "app/*"
+        "./*"
       ]
     }
   },
   "include": [
     "app",
     "app/**/*.ts",
-    "app/**/*.tsx"
+    "app/**/*.tsx",
+    "lib"
   ]
 }
