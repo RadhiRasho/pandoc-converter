@@ -5,6 +5,7 @@ import {
     ArrowRight,
     Check,
     Download,
+    Eye,
     FileText,
     Loader2,
     Upload
@@ -16,8 +17,8 @@ import { Button } from './ui/button';
 // Define available formats
 const FORMATS = [
     { label: 'Markdown', value: 'markdown', extension: 'md' },
-    { label: 'HTML', value: 'html', extension: 'html' },
     { label: 'PDF', value: 'pdf', extension: 'pdf' },
+    { label: 'HTML', value: 'html', extension: 'html' },
     { label: 'DOCX', value: 'docx', extension: 'docx' },
     { label: 'LaTeX', value: 'latex', extension: 'tex' },
     { label: 'EPUB', value: 'epub', extension: 'epub' },
@@ -29,6 +30,8 @@ export function FileConverter() {
     const [outputFormat, setOutputFormat] = useState('html');
     const [progress, setProgress] = useState(0);
     const [downloadUrl, setDownloadUrl] = useState('');
+    const [showPdfPreview, setShowPdfPreview] = useState(false);
+    const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
 
     // Handle file drop
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -45,6 +48,7 @@ export function FileConverter() {
         onDrop: acceptedFiles => {
             setFile(acceptedFiles[0]);
             setDownloadUrl('');
+            setPdfBlob(null);
         }
     });
 
@@ -85,8 +89,14 @@ export function FileConverter() {
             setProgress(100);
 
             // Create blob URL for download
-            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const blob = new Blob([response.data]);
+            const url = window.URL.createObjectURL(blob);
             setDownloadUrl(url);
+
+            // Store PDF blob explicitly
+            if (outputFormat === 'pdf') {
+                setPdfBlob(blob);
+            }
 
             return url;
         },
@@ -101,6 +111,7 @@ export function FileConverter() {
     const handleConvert = () => {
         setProgress(0);
         setDownloadUrl('');
+        setPdfBlob(null);
         convertMutation.mutate();
     };
 
@@ -251,6 +262,35 @@ export function FileConverter() {
                                                 <Download className="h-5 w-5 mr-2" />
                                                 Download {outputFileName}
                                             </a>
+                                            {outputFormat === 'pdf' && (
+                                                <>
+                                                    <a
+                                                        href={downloadUrl}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="inline-flex items-center justify-center px-4 py-3 rounded-md text-primary bg-secondary hover:bg-secondary-dark focus:outline-none focus:ring-2 focus:ring-primary hover:shadow-glow transition-all"
+                                                    >
+                                                        <Eye className="h-5 w-5 mr-2" />
+                                                        Preview PDF
+                                                    </a>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowPdfPreview(!showPdfPreview)}
+                                                        className="inline-flex items-center justify-center px-4 py-3 rounded-md text-primary bg-secondary hover:bg-secondary-dark focus:outline-none focus:ring-2 focus:ring-primary hover:shadow-glow transition-all"
+                                                    >
+                                                        {showPdfPreview ? 'Hide Embedded Preview' : 'Show Embedded Preview'}
+                                                    </button>
+                                                    {showPdfPreview && pdfBlob && (
+                                                        <div className="mt-4 border border-border rounded-lg overflow-hidden">
+                                                            <iframe
+                                                                src={URL.createObjectURL(pdfBlob)}
+                                                                title="PDF Preview"
+                                                                className="w-full h-[500px]"
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </>
+                                            )}
                                             <button
                                                 type='button'
                                                 onClick={() => setDownloadUrl('')}

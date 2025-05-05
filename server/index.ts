@@ -93,7 +93,20 @@ app.post("/api/convert", async (c) => {
 
 		// Add special options for PDF output
 		if (outputFormat === "pdf") {
-			command = ["pandoc", "-f", inputFormat, "-o", outputFilePath, filePath];
+			command = [
+				"pandoc",
+				"-f",
+				inputFormat,
+				"--variable=geometry:left=1in,right=1in,top=0.5in,bottom=0.5in",
+				"--variable=papersize=letter",
+				"--variable=fontsize=12pt",
+				"--variable=block-headings",
+				"--variable=widowpenalty=10000",
+				"--variable=clubpenalty=10000",
+				"-o",
+				outputFilePath,
+				filePath,
+			];
 		}
 
 		// Execute pandoc command
