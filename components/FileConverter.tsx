@@ -74,7 +74,6 @@ export function FileConverter() {
             formData.append('inputFormat', inputFormat);
             formData.append('outputFormat', outputFormat);
 
-            // Using Fetch API instead of axios
             const controller = new AbortController();
             const signal = controller.signal;
 

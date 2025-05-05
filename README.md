@@ -88,7 +88,6 @@ file-converter/
   - React
   - TanStack React Query
   - TailwindCSS
-  - Axios
 
 - **Backend**:
   - Hono.js
